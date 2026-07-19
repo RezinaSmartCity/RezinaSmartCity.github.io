@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Rezina Civic – Raportare Urbană"
+version = "1.0.0"
+id = "artifacts/rezina-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25032
+
+[services.development]
+run = "pnpm --filter @workspace/rezina-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/rezina-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/rezina-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25032"
+BASE_PATH = "/"
