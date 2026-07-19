@@ -1,0 +1,1 @@
+- [Supabase migration](supabase-migration.md) — arhitectura schimbată de la Express+Drizzle la Supabase direct în frontend; api-server rămâne în repo dar nu mai e folosit de app

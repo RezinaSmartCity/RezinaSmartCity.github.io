@@ -1,0 +1,496 @@
+# TASK: Convert Rezina Civic into a FREE GitHub Pages + Supabase application
+
+You are a senior Full Stack Engineer.
+
+Refactor the existing project "Rezina Civic" so it can be deployed FREE using:
+
+* GitHub Pages → frontend hosting
+* Supabase → database, storage and backend services
+
+The final application must work for multiple users, where all citizens see the same reports, votes and photos.
+
+---
+
+# FINAL ARCHITECTURE
+
+Replace:
+
+React
++
+Express API
++
+PostgreSQL
++
+Drizzle
++
+Nodemailer
+
+with:
+
+React + Vite + TypeScript
++
+GitHub Pages
++
+Supabase
+
+Architecture:
+
+User Browser
+|
+|
+GitHub Pages
+(React PWA)
+|
+|
+Supabase
+(PostgreSQL Database)
+(Storage)
+(Auth optional)
+(Database API)
+
+---
+
+# REMOVE COMPLETELY
+
+Delete:
+
+* Express server
+* api-server folder
+* API routes
+* Nodemailer
+* SMTP configuration
+* Drizzle ORM
+* local PostgreSQL
+* OpenAPI specification
+* Orval generated hooks
+* backend environment variables
+
+Remove unused packages.
+
+---
+
+# KEEP
+
+Keep:
+
+* React
+* Vite
+* TypeScript
+* Tailwind CSS
+* shadcn/ui
+* Leaflet.js
+* PWA functionality
+* Dark navy design
+* GPS animation
+* Responsive layout
+
+---
+
+# SUPABASE SETUP
+
+Create Supabase integration.
+
+Install:
+
+@supabase/supabase-js
+
+Create:
+
+src/lib/supabase.ts
+
+Use:
+
+SUPABASE_URL
+
+SUPABASE_ANON_KEY
+
+from environment variables.
+
+Create:
+
+.env.example
+
+with:
+
+VITE_SUPABASE_URL=
+
+VITE_SUPABASE_ANON_KEY=
+
+---
+
+# DATABASE DESIGN
+
+Create Supabase SQL migration:
+
+Table:
+
+reports
+
+Columns:
+
+id uuid primary key
+
+category text
+
+description text
+
+latitude double precision
+
+longitude double precision
+
+photo_url text
+
+created_at timestamp
+
+status text
+
+votes integer default 0
+
+resolved boolean default false
+
+fingerprint text
+
+gps_accuracy double precision
+
+address text
+
+---
+
+# TABLE:
+
+report_votes
+
+Columns:
+
+id uuid primary key
+
+report_id uuid references reports(id)
+
+fingerprint text
+
+created_at timestamp
+
+Prevent duplicate votes:
+
+One fingerprint can vote only once per report.
+
+---
+
+# STORAGE
+
+Create Supabase Storage bucket:
+
+report-images
+
+Public read access.
+
+When user uploads photo:
+
+1. Upload image to Supabase Storage.
+2. Save returned URL in reports.photo_url.
+
+Compress images before upload.
+
+Maximum image size:
+
+5 MB.
+
+---
+
+# SECURITY
+
+Enable Supabase Row Level Security.
+
+Create policies:
+
+Anyone can read reports.
+
+Anyone can create reports.
+
+Anyone can read votes.
+
+Anyone can insert one vote.
+
+Users do not need accounts.
+
+Use browser fingerprint:
+
+localStorage fingerprint.
+
+---
+
+# REPORT CREATION
+
+Replace API calls.
+
+Remove:
+
+fetch("/api/...")
+
+Replace with:
+
+Supabase queries.
+
+Example:
+
+supabase
+.from("reports")
+.insert()
+
+---
+
+# MAP
+
+Keep Leaflet map.
+
+Center:
+
+Latitude:
+
+47.7478
+
+Longitude:
+
+28.9628
+
+Load reports from Supabase.
+
+Display markers:
+
+Blue:
+new report
+
+Orange:
+pending
+
+Green:
+resolved
+
+---
+
+# REPORT FORM
+
+Keep drawer.
+
+Fields:
+
+Category
+
+Description
+
+Photo
+
+GPS location
+
+Address
+
+On submit:
+
+1. Upload photo.
+2. Insert report into Supabase.
+3. Refresh markers.
+
+---
+
+# VOTING SYSTEM
+
+Implement:
+
+Vote button.
+
+When user votes:
+
+Create record in report_votes.
+
+Increase votes.
+
+When votes >= 3:
+
+Set:
+
+resolved=true
+
+Update marker.
+
+---
+
+# EMAIL NOTIFICATIONS
+
+Remove Nodemailer.
+
+Replace with:
+
+Generate email link:
+
+mailto:
+
+Example:
+
+mailto:primarie@rezina.md
+
+with:
+
+subject
+
+description
+
+location
+
+category
+
+photo link
+
+---
+
+# ADMIN PANEL
+
+Create simple admin page.
+
+Features:
+
+* View all reports
+* Delete reports
+* Mark resolved
+* Export CSV
+* Statistics
+
+Protect admin page with simple password from environment:
+
+VITE_ADMIN_PASSWORD
+
+---
+
+# STATISTICS PAGE
+
+Show:
+
+Total reports
+
+Resolved reports
+
+Pending reports
+
+Reports by category
+
+Most voted reports
+
+Recent reports
+
+Data must come from Supabase.
+
+---
+
+# SEARCH AND FILTER
+
+Implement:
+
+Search description.
+
+Filter category.
+
+Filter status.
+
+Sort:
+
+Newest
+
+Oldest
+
+Most votes
+
+---
+
+# PWA
+
+Keep:
+
+manifest.json
+
+service worker
+
+offline shell
+
+install button
+
+fullscreen mode
+
+Cache:
+
+Application files.
+
+Do not cache database data permanently.
+
+---
+
+# GITHUB PAGES DEPLOYMENT
+
+Configure Vite.
+
+Update:
+
+vite.config.ts
+
+Set:
+
+base:
+
+"/repository-name/"
+
+Create:
+
+.github/workflows/deploy.yml
+
+Workflow:
+
+* checkout repository
+* setup Node
+* install pnpm
+* install dependencies
+* build project
+* deploy dist folder to GitHub Pages
+
+---
+
+# README UPDATE
+
+Rewrite README.
+
+Include:
+
+Project description.
+
+Architecture.
+
+Supabase setup.
+
+How to create database.
+
+How to create storage.
+
+How to deploy on GitHub Pages.
+
+---
+
+# BUILD REQUIREMENT
+
+The final project must run:
+
+pnpm install
+
+pnpm build
+
+without errors.
+
+---
+
+# FINAL RESULT
+
+After finishing:
+
+1. Create Supabase free project.
+2. Run provided SQL migration.
+3. Add two environment variables.
+4. Push code to GitHub.
+5. Enable GitHub Pages.
+
+The application must work online for multiple citizens with shared reports and shared voting.

@@ -1,11 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { ToasterProvider } from '@/components/ui/toast-provider';
 import Home from '@/pages/Home';
 import Admin from '@/pages/Admin';
 import NotFound from '@/pages/not-found';
-
-const queryClient = new QueryClient();
 
 function Router() {
   return (
@@ -19,13 +16,11 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToasterProvider>
-        <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
-          <Router />
-        </WouterRouter>
-      </ToasterProvider>
-    </QueryClientProvider>
+    <ToasterProvider>
+      <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
+        <Router />
+      </WouterRouter>
+    </ToasterProvider>
   );
 }
 

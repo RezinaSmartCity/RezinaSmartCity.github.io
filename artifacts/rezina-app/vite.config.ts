@@ -5,27 +5,22 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
+// PORT is only required for the dev/preview server, not for `vite build`
 const rawPort = process.env.PORT;
+const isBuildOnly = process.argv.includes('build');
 
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
+if (!isBuildOnly && !rawPort) {
+  throw new Error('PORT environment variable is required for dev/preview but was not provided.');
 }
 
-const port = Number(rawPort);
+const port = rawPort ? Number(rawPort) : 5173;
 
-if (Number.isNaN(port) || port <= 0) {
+if (rawPort && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+// BASE_PATH: Replit sets it via env; GitHub Pages CI passes it via env; fallback to '/'
+const basePath = process.env.BASE_PATH || '/';
 
 export default defineConfig({
   base: basePath,
