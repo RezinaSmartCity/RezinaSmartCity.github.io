@@ -182,7 +182,20 @@ components:
           type: string
         category:
           type: string
-          enum: [parking, tree, electricity, road, water, garbage, other]
+          enum:
+            - parking
+            - accident_traffic
+            - sewage
+            - garbage_road
+            - tree
+            - electricity
+            - road
+            - water
+            - garbage
+            - lighting
+            - vandalism
+            - stray_animals
+            - other
         latitude:
           type: number
           format: double
@@ -222,7 +235,20 @@ components:
           minLength: 10
         category:
           type: string
-          enum: [parking, tree, electricity, road, water, garbage, other]
+          enum:
+            - parking
+            - accident_traffic
+            - sewage
+            - garbage_road
+            - tree
+            - electricity
+            - road
+            - water
+            - garbage
+            - lighting
+            - vandalism
+            - stray_animals
+            - other
         latitude:
           type: number
           format: double

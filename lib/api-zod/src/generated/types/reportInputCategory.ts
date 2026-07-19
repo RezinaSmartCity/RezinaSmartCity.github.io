@@ -11,10 +11,16 @@ export type ReportInputCategory = typeof ReportInputCategory[keyof typeof Report
 
 export const ReportInputCategory = {
   parking: 'parking',
+  accident_traffic: 'accident_traffic',
+  sewage: 'sewage',
+  garbage_road: 'garbage_road',
   tree: 'tree',
   electricity: 'electricity',
   road: 'road',
   water: 'water',
   garbage: 'garbage',
+  lighting: 'lighting',
+  vandalism: 'vandalism',
+  stray_animals: 'stray_animals',
   other: 'other',
 } as const;

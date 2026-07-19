@@ -10,50 +10,32 @@ import {
   VoteResolvedParams,
 } from "@workspace/api-zod";
 import { sendReportEmail } from "./email";
+import { loadCategories } from "../admin/index";
 
 const router = Router();
 
-// Category → authority mapping
-const CATEGORY_AUTHORITY: Record<string, { name: string; email: string }> = {
-  parking: { name: "Poliția Rezina", email: process.env.EMAIL_POLITIE || "politie@rezina.md" },
-  tree: { name: "Secția Ecologie Rezina", email: process.env.EMAIL_ECOLOGIE || "ecologie@rezina.md" },
-  electricity: { name: "Rednord SA", email: process.env.EMAIL_REDNORD || "rednord@rezina.md" },
-  road: { name: "Primăria Rezina", email: process.env.EMAIL_PRIMARIE || "primarie@rezina.md" },
-  water: { name: "Apă Canal Rezina", email: process.env.EMAIL_APA || "apa@rezina.md" },
-  garbage: { name: "Servicii Comunale Rezina", email: process.env.EMAIL_COMUNALE || "comunale@rezina.md" },
-  other: { name: "Primăria Rezina", email: process.env.EMAIL_PRIMARIE || "primarie@rezina.md" },
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  parking: "Parcare neregulamentară",
-  tree: "Copac/Crengi căzute",
-  electricity: "Probleme electricitate",
-  road: "Drum deteriorat",
-  water: "Probleme apă",
-  garbage: "Gunoi/Depozitare ilegală",
-  other: "Altele",
-};
+function toJson(r: typeof reportsTable.$inferSelect) {
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    category: r.category,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    photoBase64: r.photoBase64,
+    address: r.address,
+    reporterName: r.reporterName,
+    reporterEmail: r.reporterEmail,
+    status: r.status,
+    resolvedVotes: r.resolvedVotes,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
 
 // GET /api/reports
 router.get("/", async (req, res) => {
   const reports = await db.select().from(reportsTable).orderBy(reportsTable.createdAt);
-  res.json(
-    reports.map((r) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      category: r.category,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      photoBase64: r.photoBase64,
-      address: r.address,
-      reporterName: r.reporterName,
-      reporterEmail: r.reporterEmail,
-      status: r.status,
-      resolvedVotes: r.resolvedVotes,
-      createdAt: r.createdAt.toISOString(),
-    }))
-  );
+  res.json(reports.map(toJson));
 });
 
 // POST /api/reports
@@ -82,35 +64,24 @@ router.post("/", async (req, res) => {
     .returning();
 
   // Send email to authority asynchronously — don't block response
-  const authority = CATEGORY_AUTHORITY[data.category] ?? CATEGORY_AUTHORITY.other;
-  sendReportEmail({
-    toEmail: authority.email,
-    toName: authority.name,
-    category: CATEGORY_LABELS[data.category] ?? data.category,
-    title: data.title,
-    description: data.description,
-    address: data.address ?? "Locație GPS",
-    latitude: data.latitude,
-    longitude: data.longitude,
-    reporterName: data.reporterName ?? "Anonim",
-    reporterEmail: data.reporterEmail ?? undefined,
-  }).catch((err) => req.log.error({ err }, "Failed to send report email"));
+  loadCategories().then((categories) => {
+    const cat = categories[data.category] ?? categories.other;
+    sendReportEmail({
+      toEmail: cat.authorityEmail,
+      toName: cat.authorityName,
+      category: cat.label,
+      title: data.title,
+      description: data.description,
+      address: data.address ?? "Locație GPS",
+      latitude: data.latitude,
+      longitude: data.longitude,
+      reporterName: data.reporterName ?? "Anonim",
+      reporterEmail: data.reporterEmail ?? undefined,
+      reportId: report.id,
+    }).catch((err) => req.log.error({ err }, "Failed to send report email"));
+  }).catch((err) => req.log.error({ err }, "Failed to load categories for email"));
 
-  res.status(201).json({
-    id: report.id,
-    title: report.title,
-    description: report.description,
-    category: report.category,
-    latitude: report.latitude,
-    longitude: report.longitude,
-    photoBase64: report.photoBase64,
-    address: report.address,
-    reporterName: report.reporterName,
-    reporterEmail: report.reporterEmail,
-    status: report.status,
-    resolvedVotes: report.resolvedVotes,
-    createdAt: report.createdAt.toISOString(),
-  });
+  res.status(201).json(toJson(report));
 });
 
 // GET /api/reports/:id
@@ -131,21 +102,7 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  res.json({
-    id: report.id,
-    title: report.title,
-    description: report.description,
-    category: report.category,
-    latitude: report.latitude,
-    longitude: report.longitude,
-    photoBase64: report.photoBase64,
-    address: report.address,
-    reporterName: report.reporterName,
-    reporterEmail: report.reporterEmail,
-    status: report.status,
-    resolvedVotes: report.resolvedVotes,
-    createdAt: report.createdAt.toISOString(),
-  });
+  res.json(toJson(report));
 });
 
 // DELETE /api/reports/:id
@@ -218,21 +175,7 @@ router.post("/:id/vote-resolved", async (req, res) => {
     .where(eq(reportsTable.id, paramsParsed.data.id))
     .returning();
 
-  res.json({
-    id: updated.id,
-    title: updated.title,
-    description: updated.description,
-    category: updated.category,
-    latitude: updated.latitude,
-    longitude: updated.longitude,
-    photoBase64: updated.photoBase64,
-    address: updated.address,
-    reporterName: updated.reporterName,
-    reporterEmail: updated.reporterEmail,
-    status: updated.status,
-    resolvedVotes: updated.resolvedVotes,
-    createdAt: updated.createdAt.toISOString(),
-  });
+  res.json(toJson(updated));
 });
 
 export default router;
