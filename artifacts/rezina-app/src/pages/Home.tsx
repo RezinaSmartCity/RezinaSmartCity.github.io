@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as L from 'leaflet';
 import { Camera, MapPin, Loader2, Plus, CheckCircle, Mail, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured, type Report } from '@/lib/supabase';
+import { loadSettings, resolveAuthorityEmail } from '@/lib/settings';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Drawer, DrawerContent, DrawerHeader, DrawerTitle,
@@ -29,107 +30,68 @@ export const CATEGORY_CONFIG: Record<string, {
   defaultTitle: string;
 }> = {
   parking: {
-    label: 'Parcare neregulamentară',
-    icon: '🚗',
-    color: '#E53935',
-    authorityName: 'Poliția Rezina',
-    authorityEmail: 'politie@rezina.md',
+    label: 'Parcare neregulamentară', icon: '🚗', color: '#E53935',
+    authorityName: 'Poliția Rezina', authorityEmail: 'politie@rezina.md',
     defaultTitle: 'Parcare neregulamentară pe str.',
   },
   accident_traffic: {
-    label: 'Accident / Acțiuni în trafic',
-    icon: '🚨',
-    color: '#D32F2F',
-    authorityName: 'Poliția Rezina',
-    authorityEmail: 'politie@rezina.md',
+    label: 'Accident / Acțiuni în trafic', icon: '🚨', color: '#D32F2F',
+    authorityName: 'Poliția Rezina', authorityEmail: 'politie@rezina.md',
     defaultTitle: 'Accident rutier / situație periculoasă pe str.',
   },
   sewage: {
-    label: 'Canalizare astupată',
-    icon: '🪣',
-    color: '#6D4C41',
-    authorityName: 'Apă Canal Rezina',
-    authorityEmail: 'apa@rezina.md',
+    label: 'Canalizare astupată', icon: '🪣', color: '#6D4C41',
+    authorityName: 'Apă Canal Rezina', authorityEmail: 'apa@rezina.md',
     defaultTitle: 'Canalizare astupată / revărsată pe str.',
   },
   garbage_road: {
-    label: 'Gunoi pe drum / trotuare',
-    icon: '♻️',
-    color: '#795548',
-    authorityName: 'Servicii Comunale Rezina',
-    authorityEmail: 'comunale@rezina.md',
+    label: 'Gunoi pe drum / trotuare', icon: '♻️', color: '#795548',
+    authorityName: 'Servicii Comunale Rezina', authorityEmail: 'comunale@rezina.md',
     defaultTitle: 'Gunoi necolectat pe str.',
   },
   tree: {
-    label: 'Copac / Crengi căzute',
-    icon: '🌳',
-    color: '#43A047',
-    authorityName: 'Secția Ecologie Rezina',
-    authorityEmail: 'ecologie@rezina.md',
+    label: 'Copac / Crengi căzute', icon: '🌳', color: '#43A047',
+    authorityName: 'Secția Ecologie Rezina', authorityEmail: 'ecologie@rezina.md',
     defaultTitle: 'Copac / crengi căzute pe str.',
   },
   electricity: {
-    label: 'Probleme electricitate',
-    icon: '⚡',
-    color: '#FFB300',
-    authorityName: 'Rednord SA',
-    authorityEmail: 'rednord@rednord.md',
+    label: 'Probleme electricitate', icon: '⚡', color: '#FFB300',
+    authorityName: 'Rednord SA', authorityEmail: 'rednord@rednord.md',
     defaultTitle: 'Defecțiune la rețeaua electrică pe str.',
   },
   road: {
-    label: 'Drum deteriorat',
-    icon: '🕳️',
-    color: '#757575',
-    authorityName: 'Primăria Rezina',
-    authorityEmail: 'primarie@rezina.md',
+    label: 'Drum deteriorat', icon: '🕳️', color: '#757575',
+    authorityName: 'Primăria Rezina', authorityEmail: 'primarie@rezina.md',
     defaultTitle: 'Drum deteriorat / groapă periculoasă pe str.',
   },
   water: {
-    label: 'Probleme apă',
-    icon: '💧',
-    color: '#1E88E5',
-    authorityName: 'Apă Canal Rezina',
-    authorityEmail: 'apa@rezina.md',
+    label: 'Probleme apă', icon: '💧', color: '#1E88E5',
+    authorityName: 'Apă Canal Rezina', authorityEmail: 'apa@rezina.md',
     defaultTitle: 'Defecțiune la rețeaua de apă pe str.',
   },
   garbage: {
-    label: 'Depozitare ilegală de deșeuri',
-    icon: '🗑️',
-    color: '#8D6E63',
-    authorityName: 'Servicii Comunale Rezina',
-    authorityEmail: 'comunale@rezina.md',
+    label: 'Depozitare ilegală de deșeuri', icon: '🗑️', color: '#8D6E63',
+    authorityName: 'Servicii Comunale Rezina', authorityEmail: 'comunale@rezina.md',
     defaultTitle: 'Depozitare ilegală de deșeuri pe str.',
   },
   lighting: {
-    label: 'Iluminat stradal defect',
-    icon: '💡',
-    color: '#F9A825',
-    authorityName: 'Primăria Rezina',
-    authorityEmail: 'primarie@rezina.md',
+    label: 'Iluminat stradal defect', icon: '💡', color: '#F9A825',
+    authorityName: 'Primăria Rezina', authorityEmail: 'primarie@rezina.md',
     defaultTitle: 'Iluminat stradal defect pe str.',
   },
   vandalism: {
-    label: 'Vandalism',
-    icon: '🔨',
-    color: '#E64A19',
-    authorityName: 'Poliția Rezina',
-    authorityEmail: 'politie@rezina.md',
+    label: 'Vandalism', icon: '🔨', color: '#E64A19',
+    authorityName: 'Poliția Rezina', authorityEmail: 'politie@rezina.md',
     defaultTitle: 'Act de vandalism la',
   },
   stray_animals: {
-    label: 'Animale vagabonde',
-    icon: '🐕',
-    color: '#F57F17',
-    authorityName: 'Primăria Rezina',
-    authorityEmail: 'primarie@rezina.md',
+    label: 'Animale vagabonde', icon: '🐕', color: '#F57F17',
+    authorityName: 'Primăria Rezina', authorityEmail: 'primarie@rezina.md',
     defaultTitle: 'Animale vagabonde pe str.',
   },
   other: {
-    label: 'Altele',
-    icon: '❓',
-    color: '#AB47BC',
-    authorityName: 'Primăria Rezina',
-    authorityEmail: 'primarie@rezina.md',
+    label: 'Altele', icon: '❓', color: '#AB47BC',
+    authorityName: 'Primăria Rezina', authorityEmail: 'primarie@rezina.md',
     defaultTitle: 'Sesizare privind',
   },
 };
@@ -150,20 +112,15 @@ const compressImage = (dataUrl: string, maxWidth = 1280, quality = 0.82): Promis
     const img = new Image();
     img.onload = () => {
       let { width, height } = img;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
+      if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas not supported')); return; }
       ctx.drawImage(img, 0, 0, width, height);
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error('Compression failed'))),
-        'image/jpeg',
-        quality,
+        'image/jpeg', quality,
       );
     };
     img.onerror = reject;
@@ -184,13 +141,7 @@ const createReportIcon = (category: string, isResolved: boolean) => {
   const color = cfg?.color || '#AB47BC';
   return L.divIcon({
     className: 'custom-report-marker',
-    html: `<div style="
-      background-color:${color};width:24px;height:24px;border-radius:50%;
-      border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);
-      opacity:${isResolved ? 0.45 : 1};
-      display:flex;align-items:center;justify-content:center;">
-      <div style="width:8px;height:8px;background:white;border-radius:50%;"></div>
-    </div>`,
+    html: `<div style="background-color:${color};width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);opacity:${isResolved ? 0.45 : 1};display:flex;align-items:center;justify-content:center;"><div style="width:8px;height:8px;background:white;border-radius:50%;"></div></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
     popupAnchor: [0, -12],
@@ -213,26 +164,33 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
 
+  // Settings (emailuri din Supabase)
+  const [appSettings, setAppSettings] = useState<Record<string, string>>({});
+
   // Form state
   const [formCategory, setFormCategory] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
-  const [formPhoto, setFormPhoto] = useState<string | null>(null); // base64 preview
+  const [formPhoto, setFormPhoto] = useState<string | null>(null);
   const [formAddress, setFormAddress] = useState('');
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
 
   const { toast } = useToast();
+
+  // ─── Load app settings (emailuri autorități) ───────────────────────────────
+
+  useEffect(() => {
+    loadSettings().then(setAppSettings).catch(() => {});
+  }, []);
 
   // ─── Load reports ──────────────────────────────────────────────────────────
 
   const loadReports = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     const { data, error } = await supabase
-      .from('reports')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from('reports').select('*').order('created_at', { ascending: false });
     if (!error && data) setReports(data as Report[]);
   }, []);
 
@@ -246,11 +204,7 @@ export default function Home() {
     if (container != null && (container as any)._leaflet_id) {
       (container as any)._leaflet_id = null;
     }
-    leafletMap.current = L.map(mapRef.current, {
-      center: REZINA_COORDS,
-      zoom: DEFAULT_ZOOM,
-      zoomControl: false,
-    });
+    leafletMap.current = L.map(mapRef.current, { center: REZINA_COORDS, zoom: DEFAULT_ZOOM, zoomControl: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(leafletMap.current);
@@ -354,6 +308,76 @@ export default function Home() {
     setFormEmail('');
   };
 
+  // ─── Upload foto în Supabase Storage ─────────────────────────────────────
+
+  const uploadPhoto = async (dataUrl: string): Promise<string | null> => {
+    try {
+      const blob = await compressImage(dataUrl);
+      const fileName = `${Date.now()}-${getFingerprint()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('report-images')
+        .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        toast({
+          title: 'Fotografia nu s-a putut încărca',
+          description: uploadError.message || 'Verificați că bucket-ul report-images există și are policy-uri publice.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+
+      if (!uploadData) return null;
+
+      const { data: urlData } = supabase.storage.from('report-images').getPublicUrl(uploadData.path);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Photo compression/upload failed:', err);
+      toast({
+        title: 'Eroare la procesarea fotografiei',
+        description: err instanceof Error ? err.message : 'Eroare necunoscută',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  // ─── Trimitere email (Edge Function sau mailto) ───────────────────────────
+
+  const sendNotificationEmail = async (
+    to: string,
+    subject: string,
+    body: string,
+  ) => {
+    // Încearcă Edge Function Supabase
+    try {
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
+      const resp = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ to, subject, body }),
+      });
+      if (resp.ok) {
+        toast({ title: 'Email trimis automat', description: `Notificare transmisă la ${to}` });
+        return;
+      }
+      const errData = await resp.json().catch(() => ({}));
+      // Dacă SMTP e neconfigurat, fallback la mailto fără eroare
+      if (errData.error?.includes('SMTP neconfigurat')) {
+        throw new Error('smtp_not_configured');
+      }
+      throw new Error(errData.error || 'Edge function error');
+    } catch (err) {
+      // Fallback la mailto (browserul deschide clientul de email)
+      const encoded = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(encoded, '_blank');
+    }
+  };
+
   // ─── Submit report ────────────────────────────────────────────────────────
 
   const handleReportSubmit = async (e: React.FormEvent) => {
@@ -380,24 +404,11 @@ export default function Home() {
       const lat = userLoc?.lat ?? REZINA_COORDS[0];
       const lng = userLoc?.lng ?? REZINA_COORDS[1];
 
-      // Upload photo if present
+      // Încarcă fotografia (cu erori vizibile)
       let photoUrl: string | null = null;
       if (formPhoto) {
-        try {
-          const blob = await compressImage(formPhoto);
-          const fileName = `${Date.now()}-${getFingerprint()}.jpg`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('report-images')
-            .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
-          if (!uploadError && uploadData) {
-            const { data: urlData } = supabase.storage
-              .from('report-images')
-              .getPublicUrl(uploadData.path);
-            photoUrl = urlData.publicUrl;
-          }
-        } catch {
-          // Photo upload failed — continue without photo
-        }
+        photoUrl = await uploadPhoto(formPhoto);
+        // Dacă upload a eșuat dar utilizatorul insistă, continuăm fără foto
       }
 
       const { error } = await supabase.from('reports').insert({
@@ -414,18 +425,23 @@ export default function Home() {
         status: 'pending',
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
       setIsDrawerOpen(false);
       resetForm();
-      toast({ title: 'Sesizare trimisă!', description: 'Autoritatea competentă a fost notificată.' });
+      toast({ title: 'Sesizare trimisă!', description: 'Mulțumim pentru raportare.' });
       await loadReports();
 
-      // Open mailto link to notify authority
+      // Notifică autoritatea
       const cfg = CATEGORY_CONFIG[formCategory];
-      if (cfg?.authorityEmail) {
-        const subject = encodeURIComponent(`[Rezina Smart City] ${formTitle}`);
-        const body = encodeURIComponent(
+      if (cfg) {
+        // Emailul din setările Supabase (dacă există) sau cel implicit din cod
+        const authorityEmail = resolveAuthorityEmail(appSettings, formCategory, cfg.authorityEmail);
+        const subject = `[Rezina Smart City] ${formTitle}`;
+        const body =
           `Sesizare nouă înregistrată în aplicația Rezina Smart City:\n\n` +
           `Categorie: ${cfg.label}\n` +
           `Titlu: ${formTitle}\n` +
@@ -434,13 +450,13 @@ export default function Home() {
           (formAddress ? `Adresă: ${formAddress}\n` : '') +
           (photoUrl ? `Fotografie: ${photoUrl}\n` : '') +
           (formName ? `Raportat de: ${formName}\n` : '') +
-          `\nVă rugăm să soluționați problema conform Legii RM nr. 190/1994 privind petițiile.`
-        );
-        window.open(`mailto:${cfg.authorityEmail}?subject=${subject}&body=${body}`, '_blank');
+          `\nVă rugăm să soluționați problema conform Legii RM nr. 190/1994 privind petițiile.`;
+
+        await sendNotificationEmail(authorityEmail, subject, body);
       }
     } catch (err) {
       console.error('Report submit error:', err);
-      toast({ title: 'Eroare', description: 'Nu s-a putut trimite sesizarea.', variant: 'destructive' });
+      toast({ title: 'Eroare', description: 'Nu s-a putut trimite sesizarea. Verificați conexiunea.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -453,32 +469,15 @@ export default function Home() {
     setIsVoting(true);
     try {
       const fp = getFingerprint();
-      const { error: voteError } = await supabase
-        .from('report_votes')
-        .insert({ report_id: reportId, fingerprint: fp });
+      const { error: voteError } = await supabase.from('report_votes').insert({ report_id: reportId, fingerprint: fp });
+      if (voteError) { toast({ description: 'Ați votat deja pentru această sesizare.' }); return; }
 
-      if (voteError) {
-        toast({ description: 'Ați votat deja pentru această sesizare.' });
-        return;
-      }
-
-      // Count votes and update report
-      const { count } = await supabase
-        .from('report_votes')
-        .select('*', { count: 'exact', head: true })
-        .eq('report_id', reportId);
-
+      const { count } = await supabase.from('report_votes').select('*', { count: 'exact', head: true }).eq('report_id', reportId);
       const newVotes = count ?? 0;
       const resolved = newVotes >= 3;
-      await supabase
-        .from('reports')
-        .update({ votes: newVotes, resolved, status: resolved ? 'resolved' : 'pending' })
-        .eq('id', reportId);
-
+      await supabase.from('reports').update({ votes: newVotes, resolved, status: resolved ? 'resolved' : 'pending' }).eq('id', reportId);
       toast({ description: resolved ? 'Sesizare marcată ca remediată!' : 'Vot înregistrat!' });
       await loadReports();
-
-      // Refresh selected report
       const { data } = await supabase.from('reports').select('*').eq('id', reportId).single();
       if (data) setSelectedReport(data as Report);
     } catch {
@@ -521,8 +520,7 @@ export default function Home() {
       <div className="fixed bottom-6 right-5 z-[9999] flex flex-col items-end gap-2">
         {isLocating && (
           <div className="bg-background/80 text-foreground px-3 py-1 rounded-full text-xs flex items-center gap-2 backdrop-blur-sm shadow-md border border-border">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span>GPS…</span>
+            <Loader2 className="w-3 h-3 animate-spin" /><span>GPS…</span>
           </div>
         )}
         <button
@@ -557,17 +555,11 @@ export default function Home() {
                 <Label className="text-sm font-semibold">Categoria <span className="text-destructive">*</span></Label>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {Object.entries(CATEGORY_CONFIG).map(([cat, cfg]) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => handleCategorySelect(cat)}
-                      className={cn(
-                        'flex flex-col items-center justify-center p-2.5 border rounded-xl transition-all text-center gap-0.5',
+                    <button key={cat} type="button" onClick={() => handleCategorySelect(cat)}
+                      className={cn('flex flex-col items-center justify-center p-2.5 border rounded-xl transition-all text-center gap-0.5',
                         formCategory === cat
                           ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                          : 'border-border bg-card hover:bg-accent/10',
-                      )}
-                    >
+                          : 'border-border bg-card hover:bg-accent/10')}>
                       <span className="text-xl leading-none">{cfg.icon}</span>
                       <span className="text-[10px] leading-tight mt-1 line-clamp-2">{cfg.label}</span>
                     </button>
@@ -582,6 +574,7 @@ export default function Home() {
                   <span className="text-muted-foreground">
                     Sesizarea va fi trimisă la:{' '}
                     <span className="font-semibold text-foreground">{selectedCatCfg.authorityName}</span>
+                    {' '}({resolveAuthorityEmail(appSettings, formCategory!, selectedCatCfg.authorityEmail)})
                   </span>
                 </div>
               )}
@@ -592,28 +585,16 @@ export default function Home() {
                   Titlu <span className="text-destructive">*</span>
                   <span className="text-muted-foreground font-normal ml-1 text-xs">(completat automat, puteți redacta)</span>
                 </Label>
-                <Input
-                  id="title"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="ex. Groapă periculoasă pe str. M. Eminescu"
-                  required
-                  minLength={3}
-                />
+                <Input id="title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="ex. Groapă periculoasă pe str. M. Eminescu" required minLength={3} />
               </div>
 
               {/* Description */}
               <div className="space-y-1.5">
                 <Label htmlFor="desc">Descriere detaliată <span className="text-destructive">*</span></Label>
-                <Textarea
-                  id="desc"
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
+                <Textarea id="desc" value={formDesc} onChange={(e) => setFormDesc(e.target.value)}
                   placeholder="Descrieți problema cât mai detaliat: locul exact, gravitatea, pericolul pentru cetățeni…"
-                  required
-                  minLength={10}
-                  rows={3}
-                />
+                  required minLength={10} rows={3} />
               </div>
 
               {/* Photo */}
@@ -639,12 +620,9 @@ export default function Home() {
               {/* Location */}
               <div className="space-y-1.5">
                 <Label>Locație GPS</Label>
-                <div className={cn(
-                  'flex items-start gap-2 text-xs p-2.5 rounded-lg border',
-                  userLoc
-                    ? 'text-green-400 bg-green-500/10 border-green-500/20'
-                    : 'text-muted-foreground bg-muted/30 border-border',
-                )}>
+                <div className={cn('flex items-start gap-2 text-xs p-2.5 rounded-lg border',
+                  userLoc ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                           : 'text-muted-foreground bg-muted/30 border-border')}>
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     {userLoc ? (
@@ -688,12 +666,9 @@ export default function Home() {
           </div>
 
           <DrawerFooter className="pt-2 gap-2">
-            <Button
-              type="submit"
-              form="report-form"
+            <Button type="submit" form="report-form"
               className="w-full text-base font-semibold py-5 bg-[#E53935] hover:bg-[#C62828] text-white"
-              disabled={isSubmitting}
-            >
+              disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Trimite Sesizarea
             </Button>
@@ -735,14 +710,21 @@ export default function Home() {
 
                   {selectedReport.photo_url && (
                     <div className="mb-4 rounded-xl overflow-hidden border border-border bg-black/20">
-                      <img src={selectedReport.photo_url} alt="Poză" className="w-full h-auto max-h-56 object-contain" />
+                      <img
+                        src={selectedReport.photo_url}
+                        alt="Poză sesizare"
+                        className="w-full h-auto max-h-56 object-contain"
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = 'none';
+                        }}
+                      />
                     </div>
                   )}
 
                   {selectedReport.address && (
                     <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {selectedReport.address}
+                      <MapPin className="w-3.5 h-3.5" />{selectedReport.address}
                     </div>
                   )}
 
@@ -752,12 +734,8 @@ export default function Home() {
                       <span className="font-medium">{selectedReport.votes}/3 persoane confirmă remedierea</span>
                     </div>
                     {!selectedReport.resolved && (
-                      <Button
-                        variant="secondary"
-                        className="w-full sm:w-auto"
-                        onClick={() => handleVoteResolved(selectedReport.id)}
-                        disabled={isVoting}
-                      >
+                      <Button variant="secondary" className="w-full sm:w-auto"
+                        onClick={() => handleVoteResolved(selectedReport.id)} disabled={isVoting}>
                         {isVoting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                         Confirmă remedierea ✓
                       </Button>
